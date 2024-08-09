@@ -1,0 +1,152 @@
+config {
+    type: "table",
+    schema: "act_acc_boms_analytics_2",
+    tags: ["analytics", "weekly"]
+}
+
+WITH
+  ordens AS (
+
+    select * from (
+  SELECT
+    CAST(cod_ordem_producao as INTEGER) as cod_ordem_producao,
+    versao_producao,
+    cod_centro,
+    cod_empresa,
+    cod_centro_de_trabalho,
+    cod_material_cabecalho,
+    des_material_cabecalho,
+    cod_material,
+    des_material_pt,
+    data_de_criacao_ordem_de_producao,
+    data_base_do_inicio,
+    data_base_do_fim,
+    data_de_liberacao_real,
+    data_inicio_real,
+    data_de_atualizacao,
+    CONCAT(cod_material_cabecalho, "_", versao_producao) AS material_cabecalho_vp,
+    quantidade_pumb,
+    SUM(quantidade_umb) AS qtd_real
+  FROM
+    ${ref("stg_OrdensProducao")}
+  GROUP BY
+    cod_ordem_producao,
+    versao_producao,
+    cod_centro,
+    cod_empresa,
+    cod_centro_de_trabalho,
+    cod_material_cabecalho,
+    des_material_cabecalho,
+    cod_material,
+    des_material_pt,
+    data_de_criacao_ordem_de_producao,
+    data_base_do_inicio,
+    data_base_do_fim,
+    data_de_liberacao_real,
+    data_inicio_real,
+    data_de_atualizacao,
+    quantidade_pumb )),
+  master_data AS (
+
+  SELECT
+    *,
+    CASE qtd_basica
+      WHEN 0 THEN 0
+      ELSE qtd_componente_final/qtd_basica
+  END
+    AS racio_cns_prd
+  FROM (
+    SELECT
+      *,
+      quantidade*(1+refugo_componente_per) AS qtd_componente_final
+    FROM (
+      SELECT
+        centro,
+        material,
+        CONCAT(material, "_", versao_producao) AS material_cabecalho_vp,
+        operacao,
+        componente,
+        denominacao_componente,
+        um_componente,
+        texto_VP,
+        denominacao_material,
+        qtd_basica_roteiro,
+        refugo,
+        texto_operacao,
+        centro_trabalho,
+        unid_medida_operacao,
+        quantidade,
+        coproduto,
+        qtd_basica,
+        um_base,
+        refugo_componente,
+        (refugo_componente/100) AS refugo_componente_per
+      FROM
+        ${ref("stg_MasterData")})))
+
+
+SELECT
+  *,
+  case qtd_teorica
+  when 0 then 0
+  else  (desv_qtds_abs/qtd_teorica)*-1
+  end as desv_qtds_per
+FROM (
+  SELECT
+    *,
+    -- CASE qtd_teorica
+    -- when 0 then 0
+    -- else qtd_real-qtd_teorica
+    -- end AS desv_qtds_abs
+    (qtd_real-qtd_teorica)*-1 as desv_qtds_abs
+  FROM (
+    SELECT
+      cod_ordem_producao,
+      versao_producao,
+      cod_centro,
+      cod_empresa,
+      cod_centro_de_trabalho,
+      cod_material_cabecalho,
+      des_material_cabecalho,
+      cod_material,
+      des_material_pt,
+      data_de_criacao_ordem_de_producao,
+      data_base_do_inicio,
+      data_base_do_fim,
+      data_de_liberacao_real,
+      data_inicio_real,
+      data_de_atualizacao,
+      o.material_cabecalho_vp,
+      quantidade_pumb,
+      qtd_real,
+      material,
+      operacao,
+      componente,
+      denominacao_componente,
+      um_componente,
+      texto_VP,
+      denominacao_material,
+      qtd_basica_roteiro,
+      refugo,
+      texto_operacao,
+      centro_trabalho,
+      unid_medida_operacao,
+      quantidade,
+      coproduto,
+      qtd_basica,
+      um_base,
+      racio_cns_prd,
+      refugo_componente,
+      refugo_componente_per,
+      -- COALESCE((quantidade_pumb*racio_cns_prd*-1), 0) AS qtd_teorica
+      quantidade_pumb*racio_cns_prd*-1 as qtd_teorica,
+      CURRENT_TIMESTAMP() AS data_extraccao
+    FROM
+      ordens o
+    left JOIN
+      master_data m
+    ON
+      o.material_cabecalho_vp=m.material_cabecalho_vp
+      AND o.cod_material = m.componente
+      ) )
+      

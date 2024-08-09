@@ -1,0 +1,36 @@
+
+config {
+    type: "incremental"
+    ,schema: "act_acc_boms_stg_2"
+    ,tags: ["stg", "weekly", "abba"]
+}
+
+with confirmacoes_producao as (
+
+   select
+   CodigoDeConfirmacaoDaOperacaoDeProducao as cod_confirmacao_operacao_producao,
+   CAST(CodOrdemDeProducao as INTEGER) as cod_ordem_producao,
+   CAST(VersaoDeProducao as INTEGER) as versao_producao,
+   EstadoDoDocumentoPT as estado_documento_pt,
+   UnidadeDeMedidaBasica as unidade_medida_basica,
+   CodCentro as cod_centro,
+   CodEmpresa as cod_empresa,
+   CodMaterialCabecalhoOrdem as cod_material_cabecalho_ordem,
+   DesMaterialPT as des_material_pt,
+   DefinicaoDeTurno	as definicao_turno,
+   DataDeAtualizacao as data_atualizacao,
+   CodDataDeLancamento as cod_data_lancamento,
+   CAST(`HorasMáquina` AS FLOAT64) as horas_maquina,
+   CAST(HorasHomem AS FLOAT64) as horas_homem,
+   CAST(QuantidadeUMB AS FLOAT64) as quantidade_umb,
+   CAST(Refugo AS FLOAT64) as refugo
+   
+   from ${ref("raw_ConfirmacaoProducao")}
+
+   ${when(incremental(), `WHERE CodDataDeLancamento > (SELECT MAX(CodDataDeLancamento) FROM ${self()})`) }
+
+)
+
+select * from confirmacoes_producao
+
+

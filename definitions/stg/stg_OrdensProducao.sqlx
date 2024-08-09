@@ -1,0 +1,45 @@
+
+config {
+    type: "incremental"
+    ,schema: "act_acc_boms_stg_2"
+    ,tags: ["stg", "weekly", "abba"]
+}
+
+
+
+with ordens_producao as (
+
+   select
+   CAST(CodigoOrdemDeProducao as INTEGER) as cod_ordem_producao,			
+   ItemOrdemDeProducao as item_ordem_producao,
+   EstadoDoDocumentoPT as estado_documento_pt,
+   CAST(VersaoDeProducao as INTEGER) as versao_producao,
+   CodCentro as cod_centro,
+   DesCentro as des_centro,
+   CodEmpresa as cod_empresa,
+   DesEmpresa as des_empresa,
+   CodCentroDeTrabalho as cod_centro_de_trabalho,
+   CentroTrabalhoPt as centro_trabalho_pt,
+   `CodMaterialCabeçalho` as cod_material_cabecalho,
+   `DesMaterialCabeçalho` as des_material_cabecalho,
+   CodMaterial as cod_material,
+   DesMaterialPT as des_material_pt,
+   DataDeCriacaoOrdemDeProducao as data_de_criacao_ordem_de_producao,
+   DataBaseDoInicio as data_base_do_inicio,
+   DataBaseDoFim as data_base_do_fim,
+   DatadeLiberacaoReal as data_de_liberacao_real,
+   DataInicioReal as data_inicio_real,
+   DataDeAtualizacao as data_de_atualizacao,
+   QuantidadeUMB as quantidade_umb,
+   QuantidadePUMB as quantidade_pumb
+   
+   from ${ref("raw_OrdensProducao")}
+
+   ${when(incremental(), `WHERE DataDeAtualizacao > (SELECT MAX(DataDeAtualizacao) FROM ${self()})`) }
+
+
+)
+
+
+select * from ordens_producao
+

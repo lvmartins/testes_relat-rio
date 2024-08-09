@@ -1,0 +1,131 @@
+config {
+    type: "table",
+    schema: "act_acc_boms_analytics_2",
+    tags: ["analytics", "weekly"]
+}
+
+
+WITH
+  conf AS (
+    select *, CONCAT(cod_material_cabecalho_ordem_trim, "_", versao_producao) AS material_cabecalho_vp from (
+  SELECT
+    cod_confirmacao_operacao_producao,
+    cod_ordem_producao,
+    versao_producao,
+    estado_documento_pt,
+    unidade_medida_basica,
+    cod_centro,
+    cod_empresa,
+    LTRIM(cod_material_cabecalho_ordem, "0") as cod_material_cabecalho_ordem_trim,
+    des_material_pt,
+    definicao_turno,
+    data_atualizacao,
+    cod_data_lancamento,
+    horas_maquina,
+    horas_homem,
+    quantidade_umb,
+    refugo,
+    -- CONCAT(cod_material_cabecalho_ordem, "_", versao_producao) AS material_cabecalho_vp,
+    SUM(quantidade_umb) AS QtdConfirmada,
+    CASE
+      WHEN horas_homem = 0 THEN 0
+      ELSE COALESCE(SUM(quantidade_umb) / SUM(horas_homem), 0)
+  END
+    AS cad_homem_real,
+    CASE
+      WHEN horas_maquina = 0 THEN 0
+      ELSE COALESCE(SUM(quantidade_umb) / SUM(horas_maquina), 0)
+  END
+    AS cad_maq_real
+  FROM
+    ${ref('stg_ConfirmacaoProducao')}
+  GROUP BY
+    cod_confirmacao_operacao_producao,
+    cod_ordem_producao,
+    versao_producao,
+    estado_documento_pt,
+    unidade_medida_basica,
+    cod_centro,
+    cod_empresa,
+    cod_material_cabecalho_ordem,
+    des_material_pt,
+    definicao_turno,
+    data_atualizacao,
+    cod_data_lancamento,
+    horas_maquina,
+    horas_homem,
+    quantidade_umb,
+    refugo )),
+
+
+  master_data AS (
+  SELECT
+    centro,
+    material,
+    operacao,
+    componente,
+    texto_VP,
+    denominacao_material,
+    qtd_basica_roteiro,
+    texto_operacao,
+    centro_trabalho,
+    cadencia_maq,
+    cadencia_homem,
+    unid_medida_operacao,
+    denominacao_componente,
+    quantidade,
+    coproduto,
+    um_componente,
+    refugo_componente,
+    CONCAT(material, "_", versao_producao) AS material_cabecalho_vp1,
+    AVG(cadencia_homem) AS cad_homem_teorica,
+    AVG(cadencia_maq) AS cad_maq_teorica
+  FROM
+    ${ref("stg_MasterData")}
+  GROUP BY
+    versao_producao,
+    centro,
+    material,
+    operacao,
+    componente,
+    texto_VP,
+    denominacao_material,
+    qtd_basica_roteiro,
+    texto_operacao,
+    centro_trabalho,
+    cadencia_maq,
+    cadencia_homem,
+    unid_medida_operacao,
+    denominacao_componente,
+    quantidade,
+    coproduto,
+    um_componente,
+    refugo_componente )
+
+
+
+SELECT
+  c.*,
+  op.des_material_cabecalho,
+  m.*,
+  CURRENT_TIMESTAMP() AS data_extraccao,
+  CASE
+    WHEN m.cad_homem_teorica = 0 THEN 0
+    ELSE (c.cad_homem_real - m.cad_homem_teorica) / m.cad_homem_teorica
+END
+  AS desv_cad_homem_real_perc,
+  CASE
+    WHEN m.cad_maq_teorica = 0.0 THEN 0.0
+    ELSE (c.cad_maq_real - m.cad_maq_teorica) / m.cad_maq_teorica
+END
+  AS desv_cad_maq_real_perc
+FROM
+  conf c
+LEFT JOIN
+  master_data m
+ON
+ c.material_cabecalho_vp  = m.material_cabecalho_vp1  
+LEFT JOIN
+  ${ref("stg_OrdensProducao")} op
+ON
+  op.cod_ordem_producao = c.cod_ordem_producao

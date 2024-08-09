@@ -1,0 +1,47 @@
+
+config {
+    type: "table"
+    ,schema: "act_acc_boms_stg_2"
+    ,tags: ["stg", "weekly"]
+}
+
+
+
+with master_data as (
+
+   select
+   CAST(`Versão de Produção` as INTEGER) as versao_producao,
+   Centro as centro,
+   Material as material,
+   `Operação` as operacao,
+   Componente as componente,
+   `Texto VP` as texto_VP,
+   `Denominação Material` as denominacao_material,
+   `Qtd Básica Roteiro` as qtd_basica_roteiro,
+   Refugo as refugo,
+   `Texto Operação` as texto_operacao,
+   `Centro Trabalho` as centro_trabalho,
+   `Cadência Máq` as cadencia_maq,
+   `Cadência Homem` as cadencia_homem,
+   `Unid Medida Operação` as unid_medida_operacao,
+   `Denominação Componente` as denominacao_componente,
+   Quantidade as quantidade,
+   CoProduto as coproduto,
+   `UM Componente` as um_componente,
+   `Qtd Básica` as qtd_basica,
+   `UM Base` as um_base,
+   `Refugo Componente` as refugo_componente
+
+    from ${ref( "acc_master_data_2")}
+
+    -- {% if is_incremental() %}
+
+    -- where created_at > ( select max(CreatedAtUtc) from {{ this }} )
+
+    -- {% endif %}
+
+)
+
+
+select * from master_data 
+
