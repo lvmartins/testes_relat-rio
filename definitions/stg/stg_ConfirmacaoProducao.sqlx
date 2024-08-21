@@ -15,7 +15,7 @@ with confirmacoes_producao as (
    UnidadeDeMedidaBasica as unidade_medida_basica,
    CodCentro as cod_centro,
    CodEmpresa as cod_empresa,
-   CodMaterialCabecalhoOrdem as cod_material_cabecalho_ordem,
+   LTRIM(CodMaterialCabecalhoOrdem, "0") as cod_material_cabecalho_ordem,
    DesMaterialPT as des_material_pt,
    DefinicaoDeTurno	as definicao_turno,
    DataDeAtualizacao as data_atualizacao,
@@ -25,7 +25,7 @@ with confirmacoes_producao as (
    CAST(QuantidadeUMB AS FLOAT64) as quantidade_umb,
    CAST(Refugo AS FLOAT64) as refugo
    
-   from ${ref("raw_ConfirmacaoProducao")}
+   from ${ref("ConfirmacaoProducao")}
 
    ${when(incremental(), `WHERE CodDataDeLancamento > (SELECT MAX(CodDataDeLancamento) FROM ${self()})`) }
 

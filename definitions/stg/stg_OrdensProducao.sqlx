@@ -33,7 +33,7 @@ with ordens_producao as (
    QuantidadeUMB as quantidade_umb,
    QuantidadePUMB as quantidade_pumb
    
-   from ${ref("raw_OrdensProducao")}
+   from ${ref("OrdensProducao")}
 
    ${when(incremental(), `WHERE DataDeAtualizacao > (SELECT MAX(DataDeAtualizacao) FROM ${self()})`) }
 

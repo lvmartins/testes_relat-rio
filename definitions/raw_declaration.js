@@ -1,36 +1,22 @@
 declare({
   database: "act-acc-boms-prd",
-  schema: "act_acc_boms_raw_2",
-  name: "raw_ConfirmacaoProducao",
+  schema: "act_acc_boms_fwk_daily",
+  name: "ConfirmacaoProducao",
 });
 
 
 
 declare({
   database: "act-acc-boms-prd",
-  schema: "act_acc_boms_raw_2",
-  name: "raw_OrdensProducao",
+  schema: "act_acc_boms_fwk_daily",
+  name: "OrdensProducao",
 });
+
 
 
 
 declare({
   database: "act-acc-boms-prd",
-  schema: "act_acc_boms_data_csv_2",
-  name: "acc_master_data_2",
-});
-
-
-declare({
-  database: "act-acc-boms-prd",
-  schema: "act_acc_boms_data_csv_2",
-  name: "acc_ordens_producao",
-});
-
-
-
-declare({
-  database: "act-acc-boms-prd",
-  schema: "act_acc_boms_data_csv_2",
-  name: "acc_confirmacoes",
+  schema: "act_acc_boms_fwk_daily",
+  name: "raw-master",
 });

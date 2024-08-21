@@ -7,7 +7,6 @@ config {
 
 WITH
   conf AS (
-    select *, CONCAT(cod_material_cabecalho_ordem_trim, "_", versao_producao) AS material_cabecalho_vp from (
   SELECT
     cod_confirmacao_operacao_producao,
     cod_ordem_producao,
@@ -16,7 +15,7 @@ WITH
     unidade_medida_basica,
     cod_centro,
     cod_empresa,
-    LTRIM(cod_material_cabecalho_ordem, "0") as cod_material_cabecalho_ordem_trim,
+    cod_material_cabecalho_ordem,
     des_material_pt,
     definicao_turno,
     data_atualizacao,
@@ -25,7 +24,7 @@ WITH
     horas_homem,
     quantidade_umb,
     refugo,
-    -- CONCAT(cod_material_cabecalho_ordem, "_", versao_producao) AS material_cabecalho_vp,
+    CONCAT(cod_material_cabecalho_ordem, "_", versao_producao) AS material_cabecalho_vp,
     SUM(quantidade_umb) AS QtdConfirmada,
     CASE
       WHEN horas_homem = 0 THEN 0
@@ -55,7 +54,7 @@ WITH
     horas_maquina,
     horas_homem,
     quantidade_umb,
-    refugo )),
+    refugo ),
 
 
   master_data AS (
@@ -106,7 +105,7 @@ WITH
 
 SELECT
   c.*,
-  op.des_material_cabecalho,
+  -- op.des_material_cabecalho,
   m.*,
   CURRENT_TIMESTAMP() AS data_extraccao,
   CASE
@@ -124,8 +123,8 @@ FROM
 LEFT JOIN
   master_data m
 ON
- c.material_cabecalho_vp  = m.material_cabecalho_vp1  
-LEFT JOIN
-  ${ref("stg_OrdensProducao")} op
-ON
-  op.cod_ordem_producao = c.cod_ordem_producao
+ c.material_cabecalho_vp  = m.material_cabecalho_vp1
+-- LEFT JOIN
+--   ${ref("stg_OrdensProducao")} op
+-- ON
+--   op.cod_ordem_producao = c.cod_ordem_producao
