@@ -34,11 +34,7 @@ with master_data as (
 
     from ${ref("raw-master")}
 
-    -- {% if is_incremental() %}
-
-    -- where created_at > ( select max(CreatedAtUtc) from {{ this }} )
-
-    -- {% endif %}
+    ${when(incremental(), `WHERE ValidoDesde > (SELECT MAX(ValidoDesde) FROM ${self()})`) }
 
 )
 
