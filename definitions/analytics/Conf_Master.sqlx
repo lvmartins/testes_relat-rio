@@ -4,7 +4,6 @@ config {
     tags: ["analytics", "weekly"]
 }
 
-
 WITH
   conf AS (
   SELECT
@@ -16,6 +15,13 @@ WITH
     cod_centro,
     cod_empresa,
     cod_material_cabecalho_ordem,
+    LTRIM(CAST(cod_material_cabecalho_ordem AS STRING), "0") as cod_material_cabecalho_ordem_trim,
+    Refugo,
+    CONCAT(
+      LTRIM(CAST(cod_material_cabecalho_ordem AS STRING), "0"), 
+      "_", 
+      LTRIM(CAST(versao_producao AS STRING), "0")
+    ) AS material_cabecalho_vp1,
     des_material_pt,
     definicao_turno,
     data_atualizacao,
@@ -23,19 +29,15 @@ WITH
     horas_maquina,
     horas_homem,
     quantidade_umb,
-    refugo,
-    CONCAT(cod_material_cabecalho_ordem, "_", versao_producao) AS material_cabecalho_vp,
     SUM(quantidade_umb) AS QtdConfirmada,
     CASE
       WHEN horas_homem = 0 THEN 0
       ELSE COALESCE(SUM(quantidade_umb) / SUM(horas_homem), 0)
-  END
-    AS cad_homem_real,
+  END AS cad_homem_real,
     CASE
       WHEN horas_maquina = 0 THEN 0
       ELSE COALESCE(SUM(quantidade_umb) / SUM(horas_maquina), 0)
-  END
-    AS cad_maq_real
+  END AS cad_maq_real
   FROM
     ${ref('stg_ConfirmacaoProducao')}
   GROUP BY
@@ -54,13 +56,14 @@ WITH
     horas_maquina,
     horas_homem,
     quantidade_umb,
-    refugo ),
-
+    Refugo
+),
 
   master_data AS (
   SELECT
     centro,
     material,
+    CONCAT(LTRIM(Material, "0"), "_", LTRIM(versao_producao, "0")) AS material_cabecalho_vp,
     operacao,
     componente,
     texto_VP,
@@ -68,17 +71,14 @@ WITH
     qtd_basica_roteiro,
     texto_operacao,
     centro_trabalho,
-    cadencia_maq,
-    cadencia_homem,
+    AVG(cadencia_homem*1000000) AS cad_homem_teorica,
+    AVG(cadencia_maq*1000000) AS cad_maq_teorica,
     unid_medida_operacao,
     denominacao_componente,
     quantidade,
     coproduto,
     um_componente,
-    refugo_componente,
-    CONCAT(material, "_", versao_producao) AS material_cabecalho_vp1,
-    AVG(cadencia_homem) AS cad_homem_teorica,
-    AVG(cadencia_maq) AS cad_maq_teorica
+    refugo_componente
   FROM
     ${ref("stg_MasterData")}
   GROUP BY
@@ -92,39 +92,33 @@ WITH
     qtd_basica_roteiro,
     texto_operacao,
     centro_trabalho,
-    cadencia_maq,
     cadencia_homem,
+    cadencia_maq,
     unid_medida_operacao,
     denominacao_componente,
     quantidade,
     coproduto,
     um_componente,
-    refugo_componente )
-
-
+    refugo_componente 
+)
 
 SELECT
   c.*,
-  -- op.des_material_cabecalho,
   m.*,
   CURRENT_TIMESTAMP() AS data_extraccao,
   CASE
     WHEN m.cad_homem_teorica = 0 THEN 0
-    ELSE (c.cad_homem_real - m.cad_homem_teorica) / m.cad_homem_teorica
+    ELSE ((c.cad_homem_real - m.cad_homem_teorica) / m.cad_homem_teorica) * 100
 END
   AS desv_cad_homem_real_perc,
   CASE
-    WHEN m.cad_maq_teorica = 0.0 THEN 0.0
-    ELSE (c.cad_maq_real - m.cad_maq_teorica) / m.cad_maq_teorica
+    WHEN m.cad_maq_teorica = 0 THEN 0
+    ELSE ((c.cad_maq_real - m.cad_maq_teorica) / m.cad_maq_teorica) * 100
 END
   AS desv_cad_maq_real_perc
 FROM
   conf c
-LEFT JOIN
+INNER JOIN
   master_data m
 ON
- c.material_cabecalho_vp  = m.material_cabecalho_vp1
--- LEFT JOIN
---   ${ref("stg_OrdensProducao")} op
--- ON
---   op.cod_ordem_producao = c.cod_ordem_producao
+  c.material_cabecalho_vp1  = m.material_cabecalho_vp

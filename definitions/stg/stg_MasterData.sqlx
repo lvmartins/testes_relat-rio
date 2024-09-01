@@ -1,43 +1,39 @@
-
 config {
-    type: "table"
-    ,schema: "act_acc_boms_stg_2"
-    ,tags: ["stg", "weekly"]
+    type: "incremental",
+    schema: "act_acc_boms_stg_2",
+    tags: ["stg", "weekly"]
 }
 
-
-
-with master_data as (
-
-   select
-   CAST(VersaodeProducao as INTEGER) as versao_producao,
-   Centro as centro,
-   Material as material,
-   Operacao as operacao,
-   Componente as componente,
-   TextoVP as texto_VP,
-   DenominacaoMaterial as denominacao_material,
-   QtdBasicaRoteiro as qtd_basica_roteiro,
-   RefugoPerc as refugo,
-   TextoOperacao as texto_operacao,
-   CentroTrabalho as centro_trabalho,
-   CadenciaMaq as cadencia_maq,
-   CadenciaHomem as cadencia_homem,
-   UnidMedidaOperacao as unid_medida_operacao,
-   DenominacaoComponente as denominacao_componente,
-   Quantidade as quantidade,
-   CoProduto as coproduto,
-   UMComponente as um_componente,
-   QtdBasica as qtd_basica,
-   UMBase as um_base,
-   RefugoComponente as refugo_componente
-
-    from ${ref("raw-master")}
-
-    ${when(incremental(), `WHERE ValidoDesde > (SELECT MAX(ValidoDesde) FROM ${self()})`) }
-
+WITH
+  master_data AS (
+  SELECT
+    VersaoDeProducao as versao_producao,
+    Centro AS centro,
+    Material AS material,
+    Operacao AS operacao,
+    Componente AS componente,
+    TextoVP AS texto_VP,
+    DenominacaoMaterial AS denominacao_material,
+    QtdBasicaRoteiro AS qtd_basica_roteiro,
+    RefugoPerc AS refugo,
+    TextoOperacao AS texto_operacao,
+    CentroTrabalho AS centro_trabalho,
+    CadenciaMaq  AS cadencia_maq,
+    CadenciaHomem AS cadencia_homem,
+    UnidMedidaOperacao AS unid_medida_operacao,
+    DenominacaoComponente AS denominacao_componente,
+    Quantidade AS quantidade,
+    CoProduto AS coproduto,
+    UMComponente AS um_componente,
+    QtdBasica AS qtd_basica,
+    UMBase AS um_base,
+    RefugoComponente AS refugo_componente,
+  FROM
+    ${ref("raw-master")} 
+    ${when(incremental(), `WHERE ValidoDesde > (SELECT MAX(ValidoDesde) FROM ${self()})`)}
 )
 
-
-select * from master_data 
-
+SELECT
+  *
+FROM
+  master_data
